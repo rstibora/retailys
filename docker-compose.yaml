@@ -1,0 +1,11 @@
+services:
+  fastapi:
+    build: ./fastapi
+    command: bash -c "poetry install && poetry run uvicorn retailys.main:app --reload --host 0.0.0.0"
+    ports:
+       - 8000:8000
+    volumes:
+      - ./fastapi:/retailys
+
+  redis:
+    image: redis:7
