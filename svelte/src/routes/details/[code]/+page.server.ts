@@ -9,7 +9,10 @@ interface Item {
 
 
 export const load = (async({ params }) => {
-    const response = await fetch(`http://fastapi:8000/items/${params.code}/`)
-    const responseData: { item: Item } = await response.json()
-    return responseData
+    const itemResponse = await fetch(`http://fastapi:8000/items/${params.code}/`)
+    const itemResponseData: Item = await itemResponse.json()
+    const sparePartsResponses = await Promise.all(itemResponseData.spare_part_codes.map(code => fetch(`http://fastapi:8000/items/${code}/`)))
+    const sparePartsData = await Promise.all(sparePartsResponses.map(response => response.json()))
+    return { item: itemResponseData, sparePartsData }
+
 }) satisfies PageServerLoad

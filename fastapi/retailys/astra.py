@@ -23,8 +23,15 @@ class Part(BaseModel):
 
 def _save_to_cache(items: list[Item]) -> None:
     connection = redis.Redis(host="redis", decode_responses=True)
-    mapping = {item.json(): idx for idx, item in enumerate(sorted(items, key=lambda item: item.name))}
-    connection.zadd("items", mapping)
+    code_mapping = dict()
+    items_mapping = dict()
+
+    for idx, item in enumerate(sorted(items, key=lambda item: item.name)):
+        code_mapping[item.code] = idx
+        items_mapping[item.code] = item.json()
+
+    connection.zadd("codes", code_mapping)
+    connection.hset("items", mapping=items_mapping)
 
 
 def _parse_xml(root_node: ET.Element) -> list[Item]:
