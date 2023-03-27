@@ -9,3 +9,11 @@ services:
 
   redis:
     image: redis:7
+
+  svelte:
+    build: ./svelte
+    ports:
+      - 3000:3000
+    volumes:
+      - ./svelte:/retailys
+    command: bash -c "npm install --also-dev && npm run dev -- --host --port 3000"

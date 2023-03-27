@@ -4,21 +4,26 @@ import os
 import redis
 
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 from retailys.astra import fetch_and_store, Item
 
 app = FastAPI()
 
+
+class ListResponse(BaseModel):
+    items: list[Item]
+    items_count: int
+
+
 @app.get("/items/")
-async def root() -> list[Item]:
+async def root(items_from: int, items_to: int) -> ListResponse:
     await fetch_and_store()
     connection = redis.Redis(host="redis", decode_responses=True)
-    items = list()
-    for key in connection.keys("item:*"):
-        serialized_item = connection.get(key)
-        if serialized_item:
-            items.append(Item.parse_obj(json.loads(serialized_item)))
-    return items
+    connection.zrange("items", items_from, items_to)
+    count = connection.zcard("items")
+    items = [Item.parse_obj(json.loads(serialized_item)) for serialized_item in connection.zrange("items", items_from, items_to)]
+    return ListResponse(items=items, items_count=count)
 
 
 @app.get("/items/{code}")

@@ -1,0 +1,11 @@
+{
+    "dockerComposeFile": "../../docker-compose.yaml",
+    "service": "svelte",
+    "workspaceFolder": "/retailys",
+    "shutdownAction": "stopCompose",
+    "customizations": {
+        "vscode": {
+            "extensions": ["svelte.svelte-vscode", "stuart.unique-window-colors", "bradlc.vscode-tailwindcss"]
+        }
+    }
+}

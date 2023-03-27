@@ -20,10 +20,11 @@ class Part(BaseModel):
     name: str
 
 
+
 def _save_to_cache(items: list[Item]) -> None:
     connection = redis.Redis(host="redis", decode_responses=True)
-    for item in items:
-        connection.set(f"item:{item.code}", item.json())
+    mapping = {item.json(): idx for idx, item in enumerate(sorted(items, key=lambda item: item.name))}
+    connection.zadd("items", mapping)
 
 
 def _parse_xml(root_node: ET.Element) -> list[Item]:
@@ -59,7 +60,7 @@ async def _fetch_zip() -> io.BytesIO:
 
 
 async def fetch_and_store() -> None:
-    if not redis.Redis(host="redis", decode_responses=True).keys("item:*"):
+    if not redis.Redis(host="redis", decode_responses=True).keys("items"):
         with open(f"{os.path.dirname(os.path.realpath(__file__))}/tests/astra_export_xml.zip", "rb") as zipped:
             in_memory = io.BytesIO(zipped.read())
             xml = await _extract_xml(in_memory)
