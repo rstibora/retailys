@@ -1,6 +1,4 @@
-import io
 import json
-import os
 import redis
 
 from fastapi import FastAPI, HTTPException

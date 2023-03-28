@@ -15,13 +15,8 @@ class Item(BaseModel):
     spare_part_codes: list[str] = list()
 
 
-class Part(BaseModel):
-    code: str
-    name: str
-
-
-
 def _save_to_cache(items: list[Item]) -> None:
+    """Stores Pydantic models to Redis."""
     connection = redis.Redis(host="redis", decode_responses=True)
     code_mapping = dict()
     items_mapping = dict()
@@ -35,6 +30,7 @@ def _save_to_cache(items: list[Item]) -> None:
 
 
 def _parse_xml(root_node: ET.Element) -> list[Item]:
+    """Parses Pydantic models from the xml tree."""
     items = list()
     items_node = root_node.find("items")
     if items_node is None:
@@ -54,6 +50,7 @@ def _parse_xml(root_node: ET.Element) -> list[Item]:
 
 
 async def _extract_xml(zipped: io.BytesIO) -> ET.Element:
+    """Extracts data from the zip file."""
     with zipfile.ZipFile(zipped) as extracted_file:
         export_full_xml = io.BytesIO(extracted_file.read("export_full.xml"))
         tree = ET.parse(export_full_xml)
@@ -61,15 +58,21 @@ async def _extract_xml(zipped: io.BytesIO) -> ET.Element:
 
 
 async def _fetch_zip() -> io.BytesIO:
+    """Fetches the zip file."""
     async with aiohttp.ClientSession() as session:
         async with session.get("https://www.retailys.cz/wp-content/uploads/astra_export_xml.zip") as response:
             return io.BytesIO(await response.read())
 
 
+def _cache_empty() -> bool:
+    """Check whether the cache is empty."""
+    return not redis.Redis(host="redis", decode_responses=True).keys("items")
+
+
 async def fetch_and_store() -> None:
-    if not redis.Redis(host="redis", decode_responses=True).keys("items"):
-        with open(f"{os.path.dirname(os.path.realpath(__file__))}/tests/astra_export_xml.zip", "rb") as zipped:
-            in_memory = io.BytesIO(zipped.read())
-            xml = await _extract_xml(in_memory)
-            items = _parse_xml(xml)
-            _save_to_cache(items)
+    """Checks if the Redis cache is empty and if so, fills it with data."""
+    if _cache_empty():
+        in_memory = await _fetch_zip()
+        xml = await _extract_xml(in_memory)
+        items = _parse_xml(xml)
+        _save_to_cache(items)
